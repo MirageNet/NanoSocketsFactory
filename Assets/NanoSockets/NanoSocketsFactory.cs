@@ -11,14 +11,26 @@ namespace Mirage.Sockets.NanoSockets
         [SerializeField] string address = "localhost";
         [SerializeField] int port = 7777;
 
+        static int initCount;
+
         private void Awake()
         {
-            UDP.Initialize();     
+            if (initCount == 0)
+            {
+                UDP.Initialize();
+            }
+
+            initCount++;
         }
 
         private void OnDestroy()
         {
-            UDP.Deinitialize();    
+            initCount--;
+
+            if (initCount == 0)
+            {
+                UDP.Deinitialize();
+            }
         }
 
         public override ISocket CreateClientSocket()
