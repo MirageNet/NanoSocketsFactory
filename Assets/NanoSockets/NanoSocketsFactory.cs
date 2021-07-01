@@ -49,7 +49,8 @@ namespace Mirage.Sockets.NanoSockets
 
         public override EndPoint GetBindEndPoint()
         {
-            return new IPEndPoint(IPAddress.IPv6Any, port);
+            var address = Address.CreateFromIpPort("::0", (ushort)port);
+            return new NanoEndPoint(address);
         }
 
         public override EndPoint GetConnectEndPoint(string address = null, ushort? port = null)
@@ -58,10 +59,17 @@ namespace Mirage.Sockets.NanoSockets
             IPAddress ipAddress = GetAddress(addressString);
 
             ushort portIn = port ?? (ushort)this.port;
+            var nanoAddress = Address.CreateFromIpPort(ipAddress.ToString(), portIn);
 
-            return new IPEndPoint(ipAddress, portIn);
+            return new NanoEndPoint(nanoAddress);
         }
 
+        /// <summary>
+        /// Gets Ip address from a hostname or ip address
+        /// <para>if string is hostname will use dns to get ip address</para>
+        /// </summary>
+        /// <param name="addressString"></param>
+        /// <returns></returns>
         private IPAddress GetAddress(string addressString)
         {
             if (IPAddress.TryParse(addressString, out IPAddress address))
@@ -89,24 +97,46 @@ namespace Mirage.Sockets.NanoSockets
         private static bool IsWebgl => Application.platform == RuntimePlatform.WebGLPlayer;
     }
 
+    public class NanoEndPoint : EndPoint
+    {
+        public Address address;
+
+        public NanoEndPoint(Address address)
+        {
+            this.address = address;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is NanoEndPoint other)
+            {
+                return address.Equals(other.address);
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return address.GetHashCode();
+        }
+    }
     public class NanoSocket : ISocket
     {
         Socket socket;
-        IPEndPoint anyEndpoint;
-        Address address;
+        NanoEndPoint anyEndpoint;
 
         public void Bind(EndPoint endPoint)
         {
-            anyEndpoint = endPoint as IPEndPoint;
-            address = Address.CreateFromIpPort(anyEndpoint.Address.ToString(), (ushort)anyEndpoint.Port);
+            anyEndpoint = endPoint as NanoEndPoint;
 
             socket = CreateSocket();
-            UDP.Bind(socket, ref address);
+
+            UDP.Bind(socket, ref anyEndpoint.address);
         }
 
         Socket CreateSocket()
         {
-            var socket = UDP.Create(256 * 1024, 256 * 1024);
+            Socket socket = UDP.Create(256 * 1024, 256 * 1024);
             UDP.SetNonBlocking(socket);
 
             return socket;
@@ -114,12 +144,11 @@ namespace Mirage.Sockets.NanoSockets
 
         public void Connect(EndPoint endPoint)
         {
-            anyEndpoint = endPoint as IPEndPoint;
-            address = Address.CreateFromIpPort(anyEndpoint.Address.ToString(), (ushort)anyEndpoint.Port);
+            anyEndpoint = endPoint as NanoEndPoint;
 
             socket = CreateSocket();
 
-            UDP.Connect(socket, ref address);
+            UDP.Connect(socket, ref anyEndpoint.address);
         }
 
         public void Close()
@@ -135,12 +164,13 @@ namespace Mirage.Sockets.NanoSockets
         public int Receive(byte[] buffer, out EndPoint endPoint)
         {
             endPoint = anyEndpoint;
-            return UDP.Receive(socket, ref address, buffer, buffer.Length);
+            return UDP.Receive(socket, ref anyEndpoint.address, buffer, buffer.Length);
         }
 
         public void Send(EndPoint endPoint, byte[] packet, int length)
         {
-            UDP.Send(socket, ref address, packet, length);
+            var nanoEndPoint = endPoint as NanoEndPoint;
+            UDP.Send(socket, ref nanoEndPoint.address, packet, length);
         }
     }
 }
