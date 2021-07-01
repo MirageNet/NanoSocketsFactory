@@ -113,7 +113,7 @@ namespace Mirage.Sockets.NanoSockets
         private static bool IsWebgl => Application.platform == RuntimePlatform.WebGLPlayer;
     }
 
-    public struct NanoEndPoint : IEndPoint, IEquatable<NanoEndPoint>
+    public class NanoEndPoint : IEndPoint
     {
         public Address address;
 
@@ -122,10 +122,6 @@ namespace Mirage.Sockets.NanoSockets
             this.address = address;
         }
 
-        public bool Equals(NanoEndPoint other)
-        {
-            return address.Equals(other.address);
-        }
         public override bool Equals(object obj)
         {
             if (obj is NanoEndPoint other)
@@ -143,6 +139,11 @@ namespace Mirage.Sockets.NanoSockets
         public override string ToString()
         {
             return address.ToString();
+        }
+
+        IEndPoint IEndPoint.CreateCopy()
+        {
+            return new NanoEndPoint(address);
         }
     }
 
@@ -190,14 +191,8 @@ namespace Mirage.Sockets.NanoSockets
 
         public int Receive(byte[] buffer, out IEndPoint endPoint)
         {
-            // create copy
-            var nanoEndPoint = new NanoEndPoint(anyEndpoint.address);
-
-            // ref address will change value instead address
-            int count = UDP.Receive(socket, ref nanoEndPoint.address, buffer, buffer.Length);
-
-            // set out endpoint to be copy
-            endPoint = nanoEndPoint;
+            int count = UDP.Receive(socket, ref anyEndpoint.address, buffer, buffer.Length);
+            endPoint = anyEndpoint;
             return count;
         }
 
