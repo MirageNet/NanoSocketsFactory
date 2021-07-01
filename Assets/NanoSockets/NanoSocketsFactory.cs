@@ -163,8 +163,10 @@ namespace Mirage.Sockets.NanoSockets
 
         public int Receive(byte[] buffer, out EndPoint endPoint)
         {
-            endPoint = anyEndpoint;
-            return UDP.Receive(socket, ref anyEndpoint.address, buffer, buffer.Length);
+            // todo remove alloc
+            var nanoEndPoint = new NanoEndPoint(anyEndpoint.address);
+            endPoint = nanoEndPoint;
+            return UDP.Receive(socket, ref nanoEndPoint.address, buffer, buffer.Length);
         }
 
         public void Send(EndPoint endPoint, byte[] packet, int length)
