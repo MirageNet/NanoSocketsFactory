@@ -21,22 +21,6 @@ namespace Mirage.Sockets.NanoSockets
             }
 
             initCount++;
-
-
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.playModeStateChanged += (state) =>
-            {
-                if (state == UnityEditor.PlayModeStateChange.ExitingPlayMode)
-                {
-                    // ensure deinit is called
-                    if (initCount > 0)
-                    {
-                        UDP.Deinitialize();
-                        initCount = 0;
-                    }
-                }
-            };
-#endif
         }
 
         private void OnDestroy()
@@ -157,7 +141,6 @@ namespace Mirage.Sockets.NanoSockets
             anyEndpoint = (NanoEndPoint)endPoint;
 
             socket = CreateSocket();
-            //UDP.SetOption(socket, );
 
             UDP.Bind(socket, ref anyEndpoint.address);
         }
