@@ -47,13 +47,13 @@ namespace Mirage.Sockets.NanoSockets
             return new NanoSocket();
         }
 
-        public override EndPoint GetBindEndPoint()
+        public override IEndPoint GetBindEndPoint()
         {
             var address = Address.CreateFromIpPort("::0", (ushort)port);
             return new NanoEndPoint(address);
         }
 
-        public override EndPoint GetConnectEndPoint(string address = null, ushort? port = null)
+        public override IEndPoint GetConnectEndPoint(string address = null, ushort? port = null)
         {
             string addressString = address ?? this.address;
             IPAddress ipAddress = GetAddress(addressString);
@@ -97,7 +97,7 @@ namespace Mirage.Sockets.NanoSockets
         private static bool IsWebgl => Application.platform == RuntimePlatform.WebGLPlayer;
     }
 
-    public class NanoEndPoint : EndPoint
+    public class NanoEndPoint : IEndPoint
     {
         public Address address;
 
@@ -119,15 +119,26 @@ namespace Mirage.Sockets.NanoSockets
         {
             return address.GetHashCode();
         }
+
+        public override string ToString()
+        {
+            return address.ToString();
+        }
+
+        IEndPoint IEndPoint.CreateCopy()
+        {
+            return new NanoEndPoint(address);
+        }
     }
+
     public class NanoSocket : ISocket
     {
         Socket socket;
         NanoEndPoint anyEndpoint;
 
-        public void Bind(EndPoint endPoint)
+        public void Bind(IEndPoint endPoint)
         {
-            anyEndpoint = endPoint as NanoEndPoint;
+            anyEndpoint = (NanoEndPoint)endPoint;
 
             socket = CreateSocket();
 
@@ -142,9 +153,9 @@ namespace Mirage.Sockets.NanoSockets
             return socket;
         }
 
-        public void Connect(EndPoint endPoint)
+        public void Connect(IEndPoint endPoint)
         {
-            anyEndpoint = endPoint as NanoEndPoint;
+            anyEndpoint = (NanoEndPoint)endPoint;
 
             socket = CreateSocket();
 
@@ -161,17 +172,16 @@ namespace Mirage.Sockets.NanoSockets
             return UDP.Poll(socket, 0) > 0;
         }
 
-        public int Receive(byte[] buffer, out EndPoint endPoint)
+        public int Receive(byte[] buffer, out IEndPoint endPoint)
         {
-            // todo remove alloc
-            var nanoEndPoint = new NanoEndPoint(anyEndpoint.address);
-            endPoint = nanoEndPoint;
-            return UDP.Receive(socket, ref nanoEndPoint.address, buffer, buffer.Length);
+            int count = UDP.Receive(socket, ref anyEndpoint.address, buffer, buffer.Length);
+            endPoint = anyEndpoint;
+            return count;
         }
 
-        public void Send(EndPoint endPoint, byte[] packet, int length)
+        public void Send(IEndPoint endPoint, byte[] packet, int length)
         {
-            var nanoEndPoint = endPoint as NanoEndPoint;
+            var nanoEndPoint = (NanoEndPoint)endPoint;
             UDP.Send(socket, ref nanoEndPoint.address, packet, length);
         }
     }
