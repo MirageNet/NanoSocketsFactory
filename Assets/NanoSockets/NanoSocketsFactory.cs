@@ -133,8 +133,19 @@ namespace Mirage.Sockets.NanoSockets
 
     public class NanoSocket : ISocket
     {
+        const int DefaultBufferSize = 256 * 1024;
+
+        readonly int sendBufferSize;
+        readonly int receiveBufferSize;
+
         Socket socket;
         NanoEndPoint anyEndpoint;
+
+        public NanoSocket(int sendBufferSize = DefaultBufferSize, int receiveBufferSize = DefaultBufferSize)
+        {
+            this.sendBufferSize = sendBufferSize;
+            this.receiveBufferSize = receiveBufferSize;
+        }
 
         public void Bind(IEndPoint endPoint)
         {
@@ -147,7 +158,7 @@ namespace Mirage.Sockets.NanoSockets
 
         Socket CreateSocket()
         {
-            Socket socket = UDP.Create(256 * 1024, 256 * 1024);
+            Socket socket = UDP.Create(sendBufferSize, receiveBufferSize);
             UDP.SetNonBlocking(socket);
 
             return socket;
